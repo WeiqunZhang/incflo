@@ -51,9 +51,9 @@ NodalProjection::project (      Vector< std::unique_ptr< amrex::MultiFab > >& a_
     // Compute and set matrix coefficients
     for (int lev(0); lev < a_ro.size(); ++lev)
     {
-        // Compute the PPE coefficients = (1.0 / ro)
-        m_sigma[lev] -> setVal(1.0);
-        MultiFab::Divide(*m_sigma[lev],*a_ro[lev],0,0,1,0);
+        // Compute the PPE coefficients = (a_scale_factor / ro)
+        m_sigma[lev] -> setVal(a_scale_factor, m_sigma[lev]->nGrow());
+        MultiFab::Divide(*m_sigma[lev],*a_ro[lev],0,0,1,m_sigma[lev]->nGrow());
 
         // Set matrix coefficients
         m_matrix -> setSigma(lev, *m_sigma[lev]);
@@ -62,33 +62,29 @@ NodalProjection::project (      Vector< std::unique_ptr< amrex::MultiFab > >& a_
     // Solve
     m_solver -> solve( GetVecOfPtrs(m_phi), GetVecOfConstPtrs(m_rhs), m_mg_rtol, m_mg_atol );
 
-    // Get fluxes -- fluxes = - (1/ro)*grad(phi)
+    // Get fluxes -- fluxes = - sigma*grad(phi)
     m_solver -> getFluxes( GetVecOfPtrs(m_fluxes) );
 
     // Perform projection
     for (int lev(0); lev < m_phi.size(); ++lev)
     {
-        // vel = vel + fluxes = vel - (scale_factor/rho) * grad(phi),
+        // vel = vel + fluxes = vel - sigma * grad(phi),
         MultiFab::Add( *a_vel[lev], *m_fluxes[lev], 0, 0, AMREX_SPACEDIM, 0);
 
-        // Account for scale factor -- now fluxes = (1/rho) * grad(phi)
-        m_fluxes[lev] -> mult(- 1.0/a_scale_factor, m_fluxes[lev]->nGrow() );
-
-        // Finally we get rid of ro and MINUS so that m_fluxes = grad(phi)
+        // set m_fluxes = -fluxes/sigma = grad(phi)
+        m_fluxes[lev] -> mult(- 1.0, m_fluxes[lev]->nGrow() );
         for (int n(0); n < AMREX_SPACEDIM; ++n)
-            MultiFab::Multiply(*m_fluxes[lev], *a_ro[lev], 0, n, 1, m_fluxes[lev]->nGrow() );
+            MultiFab::Divide(*m_fluxes[lev], *m_sigma[lev], 0, n, 1, m_fluxes[lev]->nGrow() );
 
         // Fill boundaries and apply scale factor to phi
         m_phi[lev] -> FillBoundary( m_incflo -> geom[lev].periodicity() );
-        m_phi[lev] -> mult(1.0/a_scale_factor, m_fluxes[lev] -> nGrow());
-
     }
 
     // Compute RHS -- this is only needed to print out post projection values
     computeRHS(a_vel, a_time);
 
     // Print diagnostics
-        amrex::Print() << " >> After projection:" << std::endl;
+    amrex::Print() << " >> After projection:" << std::endl;
     printInfo();
 }
 
