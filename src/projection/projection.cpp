@@ -54,6 +54,10 @@ void incflo::ApplyProjection(Real time, Real scaling_factor)
         }
     }
 
+    // Update vel BCs
+    int extrap_dir_bcs(0);
+    incflo_set_velocity_bcs(time, vel, extrap_dir_bcs);
+
     nodal_projector -> project(vel, density, time, scaling_factor);
 
     // Get phi and fluxes

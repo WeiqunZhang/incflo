@@ -265,9 +265,6 @@ NodalProjection::computeRHS ( Vector< std::unique_ptr< amrex::MultiFab > >& a_ve
     AMREX_ALWAYS_ASSERT(m_ok);
     BL_PROFILE("NodalProjection::computeRHS");
 
-    int extrap_dir_bcs(0);
-    m_incflo -> incflo_set_velocity_bcs(a_time, a_vel, extrap_dir_bcs);
-
     // Compute div(eu)
     m_matrix -> compRHS( GetVecOfPtrs(m_rhs),  GetVecOfPtrs(a_vel), {}, {} );
 
