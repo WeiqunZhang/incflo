@@ -14,9 +14,14 @@ public:
 
     void define ( const incflo* a_inclfo );
 
-    void project (       Vector< std::unique_ptr< amrex::MultiFab > >& a_vel,
+    void project ( Vector< std::unique_ptr< amrex::MultiFab > >& a_vel,
+                   const Vector< std::unique_ptr< amrex::MultiFab > >& a_sigma,
+                   const Vector< std::unique_ptr< amrex::MultiFab > >& a_S_cc = {},
+                   const Vector< std::unique_ptr< amrex::MultiFab > >& a_S_nd = {} );
+
+    void project ( Vector< std::unique_ptr< amrex::MultiFab > >& a_vel,
                    const Vector< std::unique_ptr< amrex::MultiFab > >& a_ro,
-                         Real a_time, Real a_scale_factor = 1.0 );
+                   Real a_time, Real a_scale_factor = 1.0 );
 
     Vector< const amrex::MultiFab* > getPhi () const {return GetVecOfConstPtrs(m_phi);};
 
@@ -49,7 +54,6 @@ private:
 
     // Cell-centered data
     Vector< std::unique_ptr< amrex::MultiFab > >  m_fluxes;
-    Vector< std::unique_ptr< amrex::MultiFab > >  m_sigma;
 
     // Node-centered data
     Vector< std::unique_ptr< amrex::MultiFab > >  m_phi;
@@ -65,9 +69,6 @@ private:
     void readParameters ();
 
     void setup ();
-
-    void computeRHS ( Vector< std::unique_ptr< amrex::MultiFab > >& a_vel,
-                      Real a_time );
 
     void printInfo ();
 

@@ -58,7 +58,18 @@ void incflo::ApplyProjection(Real time, Real scaling_factor)
     int extrap_dir_bcs(0);
     incflo_set_velocity_bcs(time, vel, extrap_dir_bcs);
 
-    nodal_projector -> project(vel, density, time, scaling_factor);
+    // Create Poisson's equation coefficients
+    Vector< std::unique_ptr< amrex::MultiFab > > sigma(finest_level+1);
+
+    for(int lev(0); lev <= finest_level; lev++)
+    {
+        sigma[lev].reset(new MultiFab(grids[lev], dmap[lev], 1, 1, MFInfo(), *ebfactory[lev]));
+        sigma[lev] -> setVal( scaling_factor, sigma[lev]->nGrow() );
+        MultiFab::Divide(*sigma[lev],*density[lev],0,0,1,sigma[lev]->nGrow());
+    }
+
+    // Perform projection
+    nodal_projector -> project(vel, sigma);
 
     // Get phi and fluxes
     Vector< const amrex::MultiFab* >  phi(nlev);
